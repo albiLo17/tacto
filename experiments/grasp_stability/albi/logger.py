@@ -1,0 +1,64 @@
+from torch.utils.tensorboard import SummaryWriter
+import os
+import utils
+
+import torch
+import numpy as np
+
+class tensorboard_logger():
+    def __init__(self, args):
+
+        self.out_dir = args.logdir
+        self.plot_figures = args.plot_figures
+        self.best_test_loss = None
+
+        # Get RUN name based on the arguments
+        self.run_name = utils.get_run_name(args)
+
+        self.check_point_dir = args.logdir + 'checkpoint/'
+
+
+        self.figures_dir = os.path.join(self.check_point_dir + self.run_name + '/', 'figures/')
+        self.loss_dir = os.path.join(self.check_point_dir + self.run_name + '/', 'losses/')
+        self.models_dir = os.path.join(self.check_point_dir + self.run_name + '/', self.run_name + '.pt')
+
+        logdir = args.logdir + 'logs/' + self.run_name
+
+        self.writer = SummaryWriter(log_dir=logdir)
+
+        self.check_folders()
+
+    def check_folders(self):
+        if not os.path.exists(self.check_point_dir):
+            utils.make_dir(self.check_point_dir)
+        if self.plot_figures:
+            if not os.path.exists(self.figures_dir):
+                utils.make_dir(self.figures_dir)
+        if not os.path.exists(self.loss_dir):
+            utils.make_dir(self.loss_dir)
+
+    def save_models(self, training_losses, test_losses, epoch):
+        # Save losses
+        if epoch % 10 == 9:
+            np.save(self.loss_dir + "train_losses.npy", np.array(training_losses))
+            np.save(self.loss_dir + "test_losses.npy", np.array(test_losses))
+
+    def update_best_loss(self, test_loss, dynamics_net):
+        # Save best model
+        if self.best_test_loss == None or test_loss < self.best_test_loss:
+            torch.save(dynamics_net, self.models_dir)
+            self.best_test_loss = test_loss
+
+    def add_training_losses(self, global_step, graph_loss=None):
+        if graph_loss != 0:
+            self.writer.add_scalar("Training Graph Loss", graph_loss, global_step)
+
+    def add_test_losses(self, epoch, graph_loss=None):
+        if graph_loss != 0:
+            self.writer.add_scalar("Test Graph Loss", graph_loss, epoch)
+
+    def plot_images(self, global_step, init_graph, pred_graph, real_graph, adj, type='train'):
+        if global_step % 1000 == 999 and self.plot_figures:     # TODO: modify this condition for test images
+            fig = utils.plot_deform(init_graph, adj, pred_graph,
+                                    real_graph, adj, fix_lim=False, save_path=f'{self.figures_dir}{type}_fig_{global_step}.png')
+            self.writer.add_figure("Train image", fig, global_step)

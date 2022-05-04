@@ -49,7 +49,8 @@ def load(field, Ns, epoch):
 
 
 numGroup = 100
-Ns = np.array([10, 25, 50, 75, 100, 300, 1000, 3000, 10000])
+# Ns = np.array([10, 25, 50, 75, 100, 300, 1000, 3000, 10000])
+Ns = np.array([10])
 legend = []
 x = []
 y = []
@@ -66,12 +67,12 @@ var.append(std)
 legend.append("Vision")
 
 
-field = ["tactileColorL"]
-mean, std = load(field, Ns, epoch=epoch)
-x.append(Ns * numGroup)
-y.append(mean)
-var.append(std)
-legend.append("Touch (Left only)")
+# field = ["tactileColorL"]
+# mean, std = load(field, Ns, epoch=epoch)
+# x.append(Ns * numGroup)
+# y.append(mean)
+# var.append(std)
+# legend.append("Touch (Left only)")
 
 field = ["tactileColorL", "tactileColorR"]
 mean, std = load(field, Ns, epoch=epoch)
@@ -81,12 +82,12 @@ var.append(std)
 legend.append("Touch (Both)")
 
 
-field = ["tactileColorL", "tactileDepthL", "visionColor"]
-mean, std = load(field, Ns, epoch=epoch)
-x.append(Ns * numGroup)
-y.append(mean)
-var.append(std)
-legend.append("Vision + Touch (Left only)")
+# field = ["tactileColorL", "tactileDepthL", "visionColor"]
+# mean, std = load(field, Ns, epoch=epoch)
+# x.append(Ns * numGroup)
+# y.append(mean)
+# var.append(std)
+# legend.append("Vision + Touch (Left only)")
 
 
 field = ["tactileColorL", "tactileColorR", "visionColor"]
@@ -101,7 +102,7 @@ plt.ylabel("Test accuracy %", fontsize=20)
 plt.xlabel("Number of samples", fontsize=20)
 plt.xscale("log")
 
-plt.ylim([50, 100])
+plt.ylim([0, 100])
 plt.yticks(fontsize=15)
 plt.xticks(
     [100, 1000, 10000, 100000, 1000000],
@@ -109,7 +110,8 @@ plt.xticks(
     fontsize=15,
 )
 
-fig = rplot(x=x, y=y, uncertainty=var, legend=legend, distribution="median+68")
+# fig = rplot(x=x, y=y, uncertainty=var, legend=legend, distribution="median+68")
+fig = rplot(x=x, y=y, legend=legend, distribution="median+68")
 
 plt.vlines(9269, 0, 100, linestyles="dashed")
 
