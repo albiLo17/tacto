@@ -32,8 +32,10 @@ def train(trainLoader, model, optimizer, epoch, args, device, writer, modality):
 
 def evaluation(testLoader, model, optimizer, epoch, args, device, writer, modality):
     model.eval()
+    criterion = nn.CrossEntropyLoss()
 
     total, correct = 0, 0
+    running_loss = 0.0
 
     for i, data in enumerate(testLoader):
 
@@ -45,6 +47,8 @@ def evaluation(testLoader, model, optimizer, epoch, args, device, writer, modali
 
         with torch.no_grad():
             outputs = model(x)
+            loss = criterion(outputs, label)
+            running_loss = (running_loss * i + loss.item()) / (i + 1)
 
             pred = outputs.argmax(axis=-1)
 
@@ -53,4 +57,4 @@ def evaluation(testLoader, model, optimizer, epoch, args, device, writer, modali
             print("\r Evaluation: ", correct / total, end=" ")
 
     acc = correct / total
-    return acc
+    return acc, running_loss

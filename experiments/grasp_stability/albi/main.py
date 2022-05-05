@@ -31,19 +31,29 @@ args = get_argparse()
 np.random.seed(args.seed)
 torch.manual_seed(args.seed)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+# device = 'cpu'
 
 run_name = utils.get_run_name(args)
 writer = tensorboard_logger(args)
 
 if __name__ == '__main__':
+
     # K fold cross validation
-    K = 5
+    K = args.K
 
     # Accuracies
     accs = []
 
-    for i in range(K):
-        print(f"Fold {i}/{K}")
+
+    if K > 0:
+        k_fold = K
+    else:
+        K_fold = 1
+        K = int(1/args.split)
+        print(K)
+
+    for i in range(K_fold):
+        print(f"Fold {i+1}/{K_fold}")
         trainLoader, testLoader = get_dataloader(args, K, i, modality=fieldsList[args.modality])
 
         # DEF MODEL
@@ -53,10 +63,22 @@ if __name__ == '__main__':
 
         train_losses = []
         test_losses = []
+        test_accuracies = []
 
         for epoch in tqdm(range(args.epochs)):
-            losses_list, training_loss = train(trainLoader, model, optimizer, epoch, args, device, writer, modality=fieldsList[args.modality])
-            acc = evaluation(testLoader, model, optimizer, epoch, args, device, writer, modality=fieldsList[args.modality])
+            _, training_loss = train(trainLoader, model, optimizer, epoch, args, device, writer, modality=fieldsList[args.modality])
+            acc, test_loss = evaluation(testLoader, model, optimizer, epoch, args, device, writer, modality=fieldsList[args.modality])
+
+            train_losses.append(training_loss)
+            test_losses.append(test_loss)
+            test_accuracies.append(acc)
+
+            writer.save_losses(train_losses, test_losses, test_accuracies, epoch)
+            writer.add_scalar(training_loss, epoch, "Trainig loss")
+            writer.add_scalar(test_loss, epoch, "Test loss")
+            writer.add_scalar(acc, epoch, "Test accuracy")
+
+            writer.update_best_loss(test_loss, model)
             print()
 
 
