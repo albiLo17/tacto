@@ -69,6 +69,8 @@ if __name__ == '__main__':
             _, training_loss = train(trainLoader, model, optimizer, epoch, args, device, writer, modality=fieldsList[args.modality])
             acc, test_loss = evaluation(testLoader, model, optimizer, epoch, args, device, writer, modality=fieldsList[args.modality])
 
+            print(f'EPOCH {epoch} - Test Loss: {test_loss}   Accuracy: {acc}')
+
             train_losses.append(training_loss)
             test_losses.append(test_loss)
             test_accuracies.append(acc)
