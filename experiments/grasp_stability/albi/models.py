@@ -6,10 +6,11 @@ import torch.nn.functional as F
 
 ## TACTO IMPLEMENTATION ###
 class Model(nn.Module):
-    def __init__(self, fields):
+    def __init__(self, args, fields):
         super(Model, self).__init__()
 
         self.fields = fields
+        self.pretrain = args.pretrain
 
         for k in self.fields:
             # Load base network
@@ -26,7 +27,7 @@ class Model(nn.Module):
 
     def get_base_net(self):
         # Load pre-trained resnet-18
-        net = torchvision.models.resnet18(pretrained=True)
+        net = torchvision.models.resnet18(pretrained=self.pretrain)
 
         # Remove the last fc layer, and rebuild
         modules = list(net.children())[:-1]
