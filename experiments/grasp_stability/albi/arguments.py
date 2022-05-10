@@ -13,7 +13,7 @@ def get_argparse(notebook=False, p=False):
     parser.add_argument('--split', default=0.2, type=float,
                         help="Train test split")
     parser.add_argument('--epochs', default=50, type=int)
-    parser.add_argument('--batch_size', default=16, type=int)  # 16 for simulation dataset
+    parser.add_argument('--batch_size', default=2, type=int)  # 16 for simulation dataset
     parser.add_argument('--lr', default=0.0005, type=float, help="Learning rate of graph neural network")
     parser.add_argument('--seed', default=1234, type=int, help="Random seed")
 
@@ -24,6 +24,12 @@ def get_argparse(notebook=False, p=False):
     # MODELS
     parser.add_argument('--modality', default=0, type=int, help="See fieldsList in main.py")
     parser.add_argument('--pretrain', default=False, type=bool, help="Load pretrained network")
+    parser.add_argument('--encoder', default='resNet', type=str, help="torch_resNet"
+                                                                      "resNet"
+                                                                      "convNet")
+    parser.add_argument('--z_dim', default=128, type=int, help="Dimension of the latent space")
+
+
 
 
     return parser.parse_args()

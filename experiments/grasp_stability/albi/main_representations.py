@@ -1,13 +1,13 @@
 # from comet_ml import Experiment
 import torch
-from torch import optim
 import torch.nn as nn
+from torch import optim
 import numpy as np
 
 from arguments import get_argparse
 import utils
 from logger import tensorboard_logger
-from experiments.grasp_stability.albi.models.models import Model
+from experiments.grasp_stability.albi.models.models import AE
 from trainers import train, evaluation
 
 from dataset import get_dataloader
@@ -17,10 +17,11 @@ from tqdm import tqdm
 
 fieldsList = [
     # ["tactileColorL", "tactileDepthL", "visionColor"],
-    ["tactileColorL", "tactileColorR", "visionColor"],
+    # ["tactileColorL", "tactileColorR", "visionColor"],
     ["visionColor"],
-    ["tactileColorL", "tactileColorR"],
-    # ["tactileDepthL"],
+    # ["tactileColorL", "tactileColorR"],
+    ["tactileDepthL"],
+    ["tactileDepthR"],
     # ["tactileColorL", "visionDepth"],
     # ["tactileColorL", "tactileDepthL"],
 ]
@@ -39,7 +40,7 @@ if __name__ == '__main__':
     for mod in range(3):
         args.modality = mod
 
-        run_name = utils.get_run_name(args)
+        run_name = "AE_" + utils.get_run_name(args)
         writer = tensorboard_logger(args)
 
         # K fold cross validation
@@ -61,28 +62,30 @@ if __name__ == '__main__':
             trainLoader, testLoader = get_dataloader(args, K, i, modality=fieldsList[args.modality])
 
             # DEF MODEL
-            model = Model(args, fieldsList[args.modality]).to(device)
+            model = AE(args, fieldsList[args.modality]).to(device)
             # DEF optimizer
             optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
             train_losses = []
             test_losses = []
-            test_accuracies = []
 
             for epoch in tqdm(range(args.epochs)):
-                _, training_loss = train(trainLoader, model, optimizer, device,  modality=fieldsList[args.modality], criterion=nn.CrossEntropyLoss(), classification=True)
-                acc, test_loss = evaluation(testLoader, model, device, modality=fieldsList[args.modality], criterion=nn.CrossEntropyLoss(), classification=True)
+                _, training_loss = train(trainLoader, model, optimizer, device, modality=fieldsList[args.modality],
+                                         criterion=nn.MSELoss(), classification=False)
 
-                print(f'EPOCH {epoch} - Test Loss: {test_loss}   Accuracy: {acc}')
+                images, test_loss = evaluation(testLoader, model, device, modality=fieldsList[args.modality],
+                                            criterion=nn.MSELoss(), classification=False)
+
+                print(f'EPOCH {epoch} - Test Loss: {test_loss} ')
 
                 train_losses.append(training_loss)
                 test_losses.append(test_loss)
-                test_accuracies.append(acc)
 
-                writer.save_losses(epoch, train_losses, test_losses, test_accuracies)
+                writer.save_losses(epoch, train_losses, test_losses, None)
                 writer.add_scalar(training_loss, epoch, "Trainig loss")
                 writer.add_scalar(test_loss, epoch, "Test loss")
-                writer.add_scalar(acc, epoch, "Test accuracy")
+
+                writer.show_reconstructed_images(images['ground_truth'][-1], images['predictions'][-1], epoch)
 
                 writer.update_best_loss(test_loss, model)
                 print()

@@ -1,19 +1,23 @@
 from torch import nn
 import torch
 
-def train(trainLoader, model, optimizer, epoch, args, device, writer, modality):
+def train(trainLoader, model, optimizer, device,  modality, criterion=nn.CrossEntropyLoss(), classification=True):
     model.train()
-    criterion = nn.CrossEntropyLoss()
+    criterion = criterion
 
     lossTrainList = []
     running_loss = 0.0
 
     for i, data in enumerate(trainLoader):
         x = {}
+        label = []
         for k in modality:
             x[k] = data[k].to(device)
+            label = torch.cat((label,data[k])) if len(label) > 0 else data[k]
 
-        label = data["label"].to(device)
+        if classification:
+            label = data["label"]
+        label.to(device)
 
         # zero the parameter gradients
         optimizer.zero_grad()
@@ -30,9 +34,10 @@ def train(trainLoader, model, optimizer, epoch, args, device, writer, modality):
     return lossTrainList, running_loss
 
 
-def evaluation(testLoader, model, optimizer, epoch, args, device, writer, modality):
+def evaluation(testLoader, model, device, modality, criterion=nn.CrossEntropyLoss(), classification=True):
     model.eval()
-    criterion = nn.CrossEntropyLoss()
+    criterion = criterion
+
 
     total, correct = 0, 0
     running_loss = 0.0
@@ -40,21 +45,36 @@ def evaluation(testLoader, model, optimizer, epoch, args, device, writer, modali
     for i, data in enumerate(testLoader):
 
         x = {}
+        label = []
+        images = {'ground_truth': [], 'predictions': []}
+
         for k in modality:
             x[k] = data[k].to(device)
+            label = torch.cat((label, data[k])) if len(label) > 0 else data[k]
+        images['ground_truth'] = label
 
-        label = data["label"].to(device)
+        if classification:
+            label = data["label"]
+        label.to(device)
 
         with torch.no_grad():
             outputs = model(x)
             loss = criterion(outputs, label)
             running_loss = (running_loss * i + loss.item()) / (i + 1)
 
-            pred = outputs.argmax(axis=-1)
+            # Get last batch prediction
+            images['predictions'] = outputs
 
-            total += label.size(0)
-            correct += (pred == label).sum().item()
+            if classification:
+                pred = outputs.argmax(axis=-1)
+                total += label.size(0)
+                correct += (pred == label).sum().item()
             print("\r Evaluation: ", correct / total, end=" ")
 
-    acc = correct / total
-    return acc, running_loss
+    if classification:
+        acc = correct / total
+        return acc, running_loss
+
+    return images, running_loss
+
+

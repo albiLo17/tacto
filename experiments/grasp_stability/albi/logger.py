@@ -2,6 +2,7 @@ from torch.utils.tensorboard import SummaryWriter
 import os
 import utils
 
+import matplotlib.pyplot as plt
 import torch
 import numpy as np
 
@@ -37,12 +38,13 @@ class tensorboard_logger():
         if not os.path.exists(self.loss_dir):
             utils.make_dir(self.loss_dir)
 
-    def save_losses(self, training_losses, test_losses, accuracies, epoch):
+    def save_losses(self, epoch, training_losses, test_losses, accuracies=None):
         # Save losses
         if epoch % 10 == 9:
             np.save(self.loss_dir + "train_losses.npy", np.array(training_losses))
             np.save(self.loss_dir + "test_losses.npy", np.array(test_losses))
-            np.save(self.loss_dir + "accuracies.npy", np.array(accuracies))
+            if accuracies is not None:
+                np.save(self.loss_dir + "accuracies.npy", np.array(accuracies))
 
     def update_best_loss(self, test_loss, dynamics_net):
         # Save best model
@@ -58,3 +60,14 @@ class tensorboard_logger():
     #         fig = utils.plot_deform(init_graph, adj, pred_graph,
     #                                 real_graph, adj, fix_lim=False, save_path=f'{self.figures_dir}{type}_fig_{global_step}.png')
     #         self.writer.add_figure("Train image", fig, global_step)
+
+    def show_reconstructed_images(self, ground_truth, prediction, epoch, tensoboard_name):
+        fig, axs = plt.subplots(2)
+
+        axs[0].imshow(ground_truth)
+        axs[0].set_title("Ground Truth")
+
+        axs[1].imshow(prediction)
+        axs[1].set_title("prediction")
+
+        self.writer.add_image(tensoboard_name, fig, epoch)

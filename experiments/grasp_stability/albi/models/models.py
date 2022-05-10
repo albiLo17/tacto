@@ -3,6 +3,10 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
+from experiments.grasp_stability.albi.models.encoders import ResNetEncoder, ImageEncoder
+from experiments.grasp_stability.albi.models.decoders import ConvDecoder
+
+
 
 ## TACTO IMPLEMENTATION ###
 class Model(nn.Module):
@@ -14,7 +18,12 @@ class Model(nn.Module):
 
         for k in self.fields:
             # Load base network
-            net = self.get_base_net()
+            if args.encoder == 'torch_resNet':
+                net = self.get_base_net()
+            if args.encoder == 'resNet':
+                net = ResNetEncoder()
+            if args.encoder == 'convNet':
+                net = ImageEncoder(z_dim=512)
             net_name = "net_{}".format(k)
 
             # Add for training
@@ -67,3 +76,35 @@ class Model(nn.Module):
 
     def load(self, PATH):
         self.load_state_dict(torch.load(PATH))
+
+
+class Multimodal(nn.Module):
+    def __init__(self, args, fields):
+        super(Multimodal, self).__init__()
+        self.fields = fields
+
+        # Encoders for each modality
+        # Classifier
+
+
+
+# class AE(nn.Module):
+#     def __init__(self, args, fields):
+#         super(AE, self).__init__()
+#         self.fields = fields
+#
+#         self.encoder = ResNetEncoder()
+#         #TODO: is something missin in between?
+#         self.decoder = ConvDecoder(args, zsize=48)
+#
+#
+#     def forward(self, x):
+#         for k in self.fields:
+#             x = self.encoder(x[k])
+#             x = self.decoder(x)
+#
+#         return x
+
+
+
+
