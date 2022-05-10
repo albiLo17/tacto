@@ -27,6 +27,8 @@ def get_argparse(notebook=False, p=False):
     parser.add_argument('--encoder', default='resNet', type=str, help="torch_resNet"
                                                                       "resNet"
                                                                       "convNet")
+    parser.add_argument('--deterministic', default=1, type=int, help="1 - Deterministic encoder"
+                                                                     "0 - Probabilistic encoder")
     parser.add_argument('--z_dim', default=128, type=int, help="Dimension of the latent space")
 
 

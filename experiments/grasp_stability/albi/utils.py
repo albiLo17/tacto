@@ -4,7 +4,7 @@ import os
 
 
 def get_run_name(args):
-    run_name = 'no_pretraining_50_'
+    run_name = 'CNN_enc_'
     run_name += 'modality=' + str(args.modality)
     return run_name
 

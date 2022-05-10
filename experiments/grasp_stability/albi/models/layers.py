@@ -119,7 +119,6 @@ class Classifier(nn.Module):
         self.fc3 = nn.Linear(256, 2)
 
     def forward(self, x):
-        # TODO: any normalization or activation fucn?
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)

@@ -13,11 +13,11 @@ def train(trainLoader, model, optimizer, device,  modality, criterion=nn.CrossEn
         label = []
         for k in modality:
             x[k] = data[k].to(device)
-            label = torch.cat((label,data[k])) if len(label) > 0 else data[k]
+            label = torch.cat((label, data[k])) if len(label) > 0 else data[k]
 
         if classification:
             label = data["label"]
-        label.to(device)
+        label = label.to(device)
 
         # zero the parameter gradients
         optimizer.zero_grad()
@@ -41,8 +41,13 @@ def evaluation(testLoader, model, device, modality, criterion=nn.CrossEntropyLos
 
     total, correct = 0, 0
     running_loss = 0.0
+    # print("Before batch")
+    # print("torch.cuda.memory_allocated: %fGB" % (torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024))
 
     for i, data in enumerate(testLoader):
+
+        # print("Before loading min-batch")
+        # print("torch.cuda.memory_allocated: %fGB" % (torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024))
 
         x = {}
         label = []
@@ -55,7 +60,10 @@ def evaluation(testLoader, model, device, modality, criterion=nn.CrossEntropyLos
 
         if classification:
             label = data["label"]
-        label.to(device)
+        label = label.to(device)
+
+        # print("After loading min-batch")
+        # print("torch.cuda.memory_allocated: %fGB" % (torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024))
 
         with torch.no_grad():
             outputs = model(x)
@@ -70,6 +78,8 @@ def evaluation(testLoader, model, device, modality, criterion=nn.CrossEntropyLos
                 total += label.size(0)
                 correct += (pred == label).sum().item()
             print("\r Evaluation: ", correct / total, end=" ")
+
+
 
     if classification:
         acc = correct / total

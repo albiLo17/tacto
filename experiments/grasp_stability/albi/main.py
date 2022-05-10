@@ -7,7 +7,7 @@ import numpy as np
 from arguments import get_argparse
 import utils
 from logger import tensorboard_logger
-from experiments.grasp_stability.albi.models.models import Model
+from experiments.grasp_stability.albi.models.models import Multimodal
 from trainers import train, evaluation
 
 from dataset import get_dataloader
@@ -61,7 +61,7 @@ if __name__ == '__main__':
             trainLoader, testLoader = get_dataloader(args, K, i, modality=fieldsList[args.modality])
 
             # DEF MODEL
-            model = Model(args, fieldsList[args.modality]).to(device)
+            model = Multimodal(args, fieldsList[args.modality]).to(device)
             # DEF optimizer
             optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
