@@ -82,10 +82,10 @@ if __name__ == '__main__':
                 test_losses.append(test_loss)
 
                 writer.save_losses(epoch, train_losses, test_losses, None)
-                writer.add_scalar(training_loss, epoch, "Trainig loss")
-                writer.add_scalar(test_loss, epoch, "Test loss")
+                writer.add_scalar(training_loss, epoch, "Trainig representation loss")
+                writer.add_scalar(test_loss, epoch, "Test representation loss")
 
-                writer.show_reconstructed_images(images['ground_truth'][-1], images['predictions'][-1], epoch)
+                writer.show_reconstructed_images(images['ground_truth'][-1], images['predictions'][-1], epoch,"Test reconstruction image")
 
                 writer.update_best_loss(test_loss, model)
                 print()

@@ -4,7 +4,7 @@ import os
 
 
 def get_run_name(args):
-    run_name = 'CNN_enc_'
+    run_name = 'CNN_AE_rec_'
     run_name += 'modality=' + str(args.modality)
     return run_name
 
@@ -34,6 +34,13 @@ class AddGaussianNoise(object):
         return self.__class__.__name__ + "(mean={0}, std={1})".format(
             self.mean, self.std
         )
+
+
+def crop_like(input, target):
+    if input.size()[2:] == target.size()[2:]:
+        return input
+    else:
+        return input[:, :, : target.size(2), : target.size(3)]
 
 
 

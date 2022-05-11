@@ -1,6 +1,8 @@
 from torch import nn
 import torch
 
+from experiments.grasp_stability.albi.utils import crop_like
+
 def train(trainLoader, model, optimizer, device,  modality, criterion=nn.CrossEntropyLoss(), classification=True):
     model.train()
     criterion = criterion
@@ -23,6 +25,11 @@ def train(trainLoader, model, optimizer, device,  modality, criterion=nn.CrossEn
         optimizer.zero_grad()
 
         outputs = model(x)
+
+        # Crop the outputs of the models to match the initial images
+
+        if not classification:
+            outputs = crop_like(outputs, label)
 
         loss = criterion(outputs, label)
         loss.backward()
@@ -67,6 +74,8 @@ def evaluation(testLoader, model, device, modality, criterion=nn.CrossEntropyLos
 
         with torch.no_grad():
             outputs = model(x)
+            if not classification:
+                outputs = crop_like(outputs, label)
             loss = criterion(outputs, label)
             running_loss = (running_loss * i + loss.item()) / (i + 1)
 
@@ -77,8 +86,7 @@ def evaluation(testLoader, model, device, modality, criterion=nn.CrossEntropyLos
                 pred = outputs.argmax(axis=-1)
                 total += label.size(0)
                 correct += (pred == label).sum().item()
-            print("\r Evaluation: ", correct / total, end=" ")
-
+                print("\r Evaluation: ", correct / total, end=" ")
 
 
     if classification:
