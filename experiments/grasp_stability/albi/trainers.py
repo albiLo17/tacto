@@ -29,7 +29,12 @@ def train(trainLoader, model, optimizer, device,  modality, criterion=nn.CrossEn
         # Crop the outputs of the models to match the initial images
 
         if not classification:
-            outputs = crop_like(outputs, label)
+            if len(outputs) == 3:
+                outputs[0] = crop_like(outputs[0], label)
+            else:
+                outputs = crop_like(outputs, label)
+
+
 
         loss = criterion(outputs, label)
         loss.backward()
@@ -74,13 +79,18 @@ def evaluation(testLoader, model, device, modality, criterion=nn.CrossEntropyLos
 
         with torch.no_grad():
             outputs = model(x)
+
             if not classification:
-                outputs = crop_like(outputs, label)
+                if len(outputs) == 3:
+                    outputs[0] = crop_like(outputs[0], label)
+                    images['predictions'] = outputs[0]
+                else:
+                    outputs = crop_like(outputs, label)
+                    images['predictions'] = outputs
+
             loss = criterion(outputs, label)
             running_loss = (running_loss * i + loss.item()) / (i + 1)
 
-            # Get last batch prediction
-            images['predictions'] = outputs
 
             if classification:
                 pred = outputs.argmax(axis=-1)

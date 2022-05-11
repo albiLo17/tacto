@@ -1,4 +1,7 @@
 import torch.nn as nn
+import torch
+from torch.distributions import Normal
+import torch.nn.functional as F
 
 
 def init_weights(modules):
@@ -16,6 +19,21 @@ def init_weights(modules):
 
 
 
+
+def reparameterize(mu, logvar):
+    std = torch.exp(0.5 * logvar)
+    eps = torch.randn_like(std)
+    return eps.mul(std).add_(mu)
+
+
+def gaussian_parameters(h, dim=-1):
+
+    m, h = torch.split(h, h.size(dim) // 2, dim=dim)
+    v = F.softplus(h) + 1e-8
+    return m, v
+
+
+
 def activation_func(activation):
     return  nn.ModuleDict([
         ['relu', nn.ReLU(inplace=True)],
@@ -23,3 +41,18 @@ def activation_func(activation):
         ['selu', nn.SELU(inplace=True)],
         ['none', nn.Identity()]
     ])[activation]
+
+
+def ELBO(output, ground_truth):
+    reconstruction, mu, logvar = output
+
+    # Reconstruction loss
+    rec_crit = nn.MSELoss()      # TODO: migh be also MSE loss
+    # rec_crit = nn.BCELoss(reduction='sum')
+    rec_loss = rec_crit(reconstruction, ground_truth)
+
+    # Regularization term
+    kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+    # print()
+
+    return rec_loss + kl_loss

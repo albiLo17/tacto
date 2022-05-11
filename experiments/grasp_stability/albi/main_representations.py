@@ -8,6 +8,7 @@ from arguments import get_argparse
 import utils
 from logger import tensorboard_logger
 from experiments.grasp_stability.albi.models.models import AE
+from experiments.grasp_stability.albi.models.models_utils import ELBO
 from trainers import train, evaluation
 
 from dataset import get_dataloader
@@ -40,7 +41,6 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 if __name__ == '__main__':
 
     for mod in range(3):
-        mod = 1
         args.modality = mod
 
         run_name = "AE_" + utils.get_run_name(args)
@@ -69,15 +69,20 @@ if __name__ == '__main__':
             # DEF optimizer
             optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
+            if args.deterministic == 1:
+                criterion = nn.MSELoss()
+            else:
+                criterion = ELBO
+
             train_losses = []
             test_losses = []
 
             for epoch in tqdm(range(args.epochs)):
                 _, training_loss = train(trainLoader, model, optimizer, device, modality=fieldsList[args.modality],
-                                         criterion=nn.MSELoss(), classification=False)
+                                         criterion=criterion, classification=False)
 
                 images, test_loss = evaluation(testLoader, model, device, modality=fieldsList[args.modality],
-                                            criterion=nn.MSELoss(), classification=False)
+                                            criterion=criterion, classification=False)
 
                 print(f'EPOCH {epoch} - Test Loss: {test_loss} ')
 
