@@ -20,8 +20,10 @@ fieldsList = [
     # ["tactileColorL", "tactileColorR", "visionColor"],
     ["visionColor"],
     # ["tactileColorL", "tactileColorR"],
-    ["tactileDepthL"],
-    ["tactileDepthR"],
+    # ["tactileDepthL"],
+    # ["tactileDepthR"],
+    ["tactileColorL"],
+    ["tactileColorR"],
     # ["tactileColorL", "visionDepth"],
     # ["tactileColorL", "tactileDepthL"],
 ]
@@ -38,6 +40,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 if __name__ == '__main__':
 
     for mod in range(3):
+        mod = 1
         args.modality = mod
 
         run_name = "AE_" + utils.get_run_name(args)
