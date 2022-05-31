@@ -4,7 +4,7 @@ import torch.nn.functional as F
 def deconv(in_planes, out_planes, kernel_size=4, stride=2, padding=1,):
     return nn.Sequential(
         nn.ConvTranspose2d(
-            in_planes, out_planes, kernel_size=4, stride=2, padding=1, bias=False
+            in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=padding, bias=False
         ),
         nn.LeakyReLU(0.1, inplace=True),
     )
@@ -108,6 +108,7 @@ class ResidualBlock(nn.Module):
         out = self.bn2(self.conv2(out))
         out = self.act(out)             # TODO: are you sure about this?
         return out + x
+
 
 
 class Classifier(nn.Module):

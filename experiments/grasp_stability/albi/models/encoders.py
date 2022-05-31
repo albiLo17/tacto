@@ -21,7 +21,7 @@ class ImageEncoder(nn.Module):
         self.img_conv4 = conv2d(64, 64, stride=2)
         self.img_conv5 = conv2d(64, 128, stride=2)
         self.img_conv6 = conv2d(128, self.z_dim, stride=2)
-        # TODO: change output of the linear projection if the encoder is deterministic
+
         if self.deterministic == 1:
             self.img_encoder = nn.Linear(4 * 4 * self.z_dim, self.z_dim)
         else:
@@ -33,6 +33,7 @@ class ImageEncoder(nn.Module):
 
     def forward(self, image):
         # image encoding layers
+        # image = torch.sigmoid(image)
         out_img_conv1 = self.img_conv1(image)
         out_img_conv2 = self.img_conv2(out_img_conv1)
         out_img_conv3 = self.img_conv3(out_img_conv2)

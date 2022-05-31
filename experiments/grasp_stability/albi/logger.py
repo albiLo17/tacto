@@ -64,10 +64,14 @@ class tensorboard_logger():
     def show_reconstructed_images(self, ground_truth, prediction, epoch, tensoboard_name):
         fig, axs = plt.subplots(2)
 
-        axs[0].imshow(ground_truth.transpose(0,1).transpose(1,2))
+        axs[0].imshow(ground_truth.transpose(0,1).transpose(1,2).cpu())
         axs[0].set_title("Ground Truth")
 
-        axs[1].imshow(prediction.transpose(0,1).transpose(1,2))
+        axs[1].imshow(prediction.transpose(0,1).transpose(1,2).cpu())
         axs[1].set_title("prediction")
 
         self.writer.add_figure(tensoboard_name, fig, epoch)
+
+    def add_reconstruction_scalar(self, loss, epoch, loss_name, fields):
+        for k in fields:
+            self.writer.add_scalar(f"{loss_name} {k}", loss[k], epoch)

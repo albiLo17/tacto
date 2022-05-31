@@ -6,53 +6,63 @@ import torch.nn.functional as F
 from experiments.grasp_stability.albi.models.encoders import ImageEncoder
 from experiments.grasp_stability.albi.models.decoders import ImageDecoder
 from experiments.grasp_stability.albi.models.layers import Classifier, Flatten
-from experiments.grasp_stability.albi.models.models_utils import gaussian_parameters, reparameterize
-
+from experiments.grasp_stability.albi.models.models_utils import gaussian_parameters, reparameterize, get_dict, product_of_experts
+from experiments.grasp_stability.albi.models.models_utils import encode, decode
 
 
 class Multimodal(nn.Module):
-    def __init__(self, args, fields):
+    def __init__(self, args, fields, paths=None):
         super(Multimodal, self).__init__()
         self.fields = fields
         self.z_dim = args.z_dim
+
         self.deterministic = args.deterministic
+        self.e2e = args.e2e
 
         # Encoders for each modality
         for k in self.fields:
-            if self.deterministic == 1:
-                net = ImageEncoder(z_dim=self.z_dim, deterministic=self.deterministic)
+            net = ImageEncoder(z_dim=self.z_dim, deterministic=self.deterministic)
             net_name = "net_{}".format(k)
+
+            # Load pretrained representations
+            if self.e2e == 0:
+                net.load_state_dict(get_dict(key_transformation=net_name, path=paths[k]), strict=False)
+                net.requires_grad = False
 
             # Add for training
             self.add_module(net_name, net)
 
         self.flatten = Flatten()
 
-        # Classifier (assuming that datafusion is concatenation and deterministic)
-        self.classifier = Classifier(infeatures=args.z_dim*len(self.fields))
+        # Classifier
+        if self.deterministic == 1:
+            # Concatenation
+            self.classifier = Classifier(infeatures=args.z_dim*len(self.fields))
+        else:
+            # PoE
+            self.classifier = Classifier(infeatures=args.z_dim)
 
     def forward(self, x):
-        features = []
 
         # Get stored modules/networks
         nets = self.__dict__["_modules"]
 
-        for k in self.fields:
-            # Get the network by name
-            net_name = "net_{}".format(k)
-            net = nets[net_name]
+        features, m_vec, var_vec = encode(self.fields, nets, x, self.deterministic)
 
-            # Forward
-            embedding = net(x[k])
+        # Concatenate embeddings
+        if self.deterministic == 1:
+            emb_fusion = torch.cat(features, dim=1)
+        else:
+            mu_fusion, logvar_fusion = product_of_experts(m_vec, var_vec)
+            emb_fusion = reparameterize(mu_fusion, logvar_fusion)
 
-            features.append(embedding)
-
-            # Concatenate embeddings
-        emb_fusion = torch.cat(features, dim=1)
-
+        # Classify
         output = self.classifier(emb_fusion)
 
         return output
+
+    def load_layers(self, path):
+        print()
 
 
 
@@ -71,45 +81,39 @@ class AE(nn.Module):
             net = ImageEncoder(z_dim=self.z_dim, deterministic=self.deterministic)
             net_name = "net_{}".format(k)
 
-            # Add for training
+            # Add encoding for training
             self.add_module(net_name, net)
 
-        # if self.deterministic == 0:
-        #     # TODO: needed? Only if you want to add a learned prior?
-        #     # zero centered, 1 std normal distribution
-        #     self.z_prior_m = torch.nn.Parameter(
-        #         torch.zeros(1, self.z_dim), requires_grad=False
-        #     )
-        #     self.z_prior_v = torch.nn.Parameter(
-        #         torch.ones(1, self.z_dim), requires_grad=False
-        #     )
-        #     self.z_prior = (self.z_prior_m, self.z_prior_v)
+        # Decoders for each Modality
+        for k in self.fields:
+            net = ImageDecoder(self.fields, z_dim=self.z_dim, deterministic=self.deterministic)
+            net_name = "dec_{}".format(k)
 
-
-        self.decoder = ImageDecoder(self.fields, z_dim=self.z_dim, deterministic=self.deterministic)
+            # Add encoding for training
+            self.add_module(net_name, net)
 
 
     def forward(self, x):
         # Get stored modules/networks
         nets = self.__dict__["_modules"]
 
-        for k in self.fields:
-            # Get the network by name
-            net_name = "net_{}".format(k)
-            net = nets[net_name]
+        # Encode
+        features, m_vec, var_vec = encode(self.fields, nets, x, self.deterministic)
 
-            # Forward
-            encoded = net(x[k])
-            if self.deterministic == 0:
-                mu, logvar = gaussian_parameters(encoded)
-                encoded = reparameterize(mu, logvar)        #TODO: check its device
+        # Concatenate embeddings
+        if self.deterministic == 1:
+            emb_fusion = torch.cat(features, dim=1)
+        else:
+            mu_fusion, logvar_fusion = product_of_experts(m_vec, var_vec)
+            emb_fusion = reparameterize(mu_fusion, logvar_fusion)
 
-            decoded = self.decoder(encoded)
+        # Encode
+        decoded = decode(self.fields, nets, emb_fusion)
 
         if self.deterministic == 1:
             return decoded
 
-        return [decoded, mu, logvar]
+        return [decoded, mu_fusion, logvar_fusion]      # TODO: is the fused embedding to be forced?
 
 
 

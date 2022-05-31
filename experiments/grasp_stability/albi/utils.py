@@ -4,7 +4,17 @@ import os
 
 
 def get_run_name(args):
-    run_name = 'CNN_VAE_rec_'
+
+    run_name = 'E2E_'
+    if args.e2e != 0:
+        run_name = 'LOAD_'
+
+    # run_name += 'MULTIREP_'
+
+    if args.deterministic == 0:
+        run_name += 'VAE_'
+    else:
+        run_name += 'AE_'
     run_name += 'modality=' + str(args.modality)
     return run_name
 
@@ -37,10 +47,16 @@ class AddGaussianNoise(object):
 
 
 def crop_like(input, target):
-    if input.size()[2:] == target.size()[2:]:
+    if isinstance(input, dict):
+        for key, value in input.items():
+            if not value.size()[2:] == target[key].size()[2:]:
+                input[key] = value[:, :, : target[key].size(2), : target[key].size(3)]
         return input
     else:
-        return input[:, :, : target.size(2), : target.size(3)]
+        if input.size()[2:] == target.size()[2:]:
+            return input
+        else:
+            return input[:, :, : target.size(2), : target.size(3)]
 
 
 

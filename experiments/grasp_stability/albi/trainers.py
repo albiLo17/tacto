@@ -3,23 +3,32 @@ import torch
 
 from experiments.grasp_stability.albi.utils import crop_like
 
-def train(trainLoader, model, optimizer, device,  modality, criterion=nn.CrossEntropyLoss(), classification=True):
+def train(args, trainLoader, model, optimizer, device,  modality, criterion=nn.CrossEntropyLoss(), classification=True):
     model.train()
     criterion = criterion
 
     lossTrainList = []
     running_loss = 0.0
+    if not classification:
+        reconstruction = {}
+        for k in modality:
+            reconstruction[k] = 0.0
+
+        kl = 0.0
 
     for i, data in enumerate(trainLoader):
         x = {}
         label = []
+        mod_label = {}
         for k in modality:
             x[k] = data[k].to(device)
             label = torch.cat((label, data[k])) if len(label) > 0 else data[k]
+            mod_label[k] = data[k].to(device)
 
         if classification:
-            label = data["label"]
-        label = label.to(device)
+            label = data["label"].to(device)
+        else:
+            label = mod_label
 
         # zero the parameter gradients
         optimizer.zero_grad()
@@ -35,18 +44,41 @@ def train(trainLoader, model, optimizer, device,  modality, criterion=nn.CrossEn
                 outputs = crop_like(outputs, label)
 
 
-
         loss = criterion(outputs, label)
+        if not classification:
+            if type(loss) == list:
+                rec_losses, kl_loss = loss
+            else:
+                rec_losses = loss
+
+            tot_rec_loss = 0
+            for k in modality:
+                tot_rec_loss += rec_losses[k]
+                reconstruction[k] = (reconstruction[k] * i + rec_losses[k].item()) / (i + 1)
+
+            rec_loss = tot_rec_loss
+
+
+            if args.deterministic == 0:
+                kl = (kl * i + args.kl * kl_loss.item())/ (i+1)
+                loss = rec_loss + args.kl * kl_loss
+            else:
+                loss = rec_loss
+
+
         loss.backward()
         optimizer.step()
 
         lossTrainList.append(loss.item())
         running_loss = (running_loss * i + loss.item()) / (i + 1)
 
-    return lossTrainList, running_loss
+    if classification:
+        return lossTrainList, running_loss
+    else:
+        return lossTrainList, [running_loss, reconstruction, kl]
 
 
-def evaluation(testLoader, model, device, modality, criterion=nn.CrossEntropyLoss(), classification=True):
+def evaluation(args, testLoader, model, device, modality, criterion=nn.CrossEntropyLoss(), classification=True):
     model.eval()
     criterion = criterion
 
@@ -63,16 +95,21 @@ def evaluation(testLoader, model, device, modality, criterion=nn.CrossEntropyLos
 
         x = {}
         label = []
-        images = {'ground_truth': [], 'predictions': []}
+        mod_label = {}
+        labeled_images = {'ground_truth': {}, 'predictions': {}}
 
         for k in modality:
             x[k] = data[k].to(device)
             label = torch.cat((label, data[k])) if len(label) > 0 else data[k]
-        images['ground_truth'] = label
+            mod_label[k] = data[k].to(device)
+            labeled_images['ground_truth'][k] = data[k]
+            labeled_images['predictions'][k] = []
+
 
         if classification:
-            label = data["label"]
-        label = label.to(device)
+            label = data["label"].to(device)
+        else:
+            label = mod_label
 
         # print("After loading min-batch")
         # print("torch.cuda.memory_allocated: %fGB" % (torch.cuda.memory_allocated(0) / 1024 / 1024 / 1024))
@@ -83,13 +120,30 @@ def evaluation(testLoader, model, device, modality, criterion=nn.CrossEntropyLos
             if not classification:
                 if len(outputs) == 3:
                     outputs[0] = crop_like(outputs[0], label)
-                    images['predictions'] = outputs[0]
+                    for k in modality:
+                        labeled_images['predictions'][k] = outputs[0][k]
                 else:
-                    outputs = crop_like(outputs, label)
-                    images['predictions'] = outputs
+                    if isinstance(outputs, dict):
+                        outputs = crop_like(outputs, label)
+                        for k in modality:
+                            labeled_images['predictions'][k] = outputs[k]
+                    else:
+                        outputs = crop_like(outputs, label)
 
             loss = criterion(outputs, label)
-            running_loss = (running_loss * i + loss.item()) / (i + 1)
+
+            # TODO: TO BE MODIFIED, compute test loss
+            # if type(loss) == list:
+            #     rec_losses, kl_loss = loss
+            #
+            #     if len(modality) == 1:
+            #         rec_loss = rec_losses
+            #     else:
+            #         tot_rec_loss = 0
+            #         for k in modality:
+            #             tot_rec_loss += rec_losses[k]
+            #         rec_loss = tot_rec_loss
+
 
 
             if classification:
@@ -103,6 +157,6 @@ def evaluation(testLoader, model, device, modality, criterion=nn.CrossEntropyLos
         acc = correct / total
         return acc, running_loss
 
-    return images, running_loss
+    return labeled_images, running_loss
 
 

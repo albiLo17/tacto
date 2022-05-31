@@ -120,7 +120,7 @@ def get_dataloader(args, K, i, modality):
             transforms.RandomCrop(224),
             # transforms.RandomHorizontalFlip(p=0.5),
             transforms.ToTensor(),
-            transforms.Normalize(mean=(0.5,), std=(0.5,)),
+            # transforms.Normalize(mean=(0.5,), std=(0.5,)),
             AddGaussianNoise(0.0, 0.01),
         ]
     )
@@ -132,7 +132,7 @@ def get_dataloader(args, K, i, modality):
             transforms.RandomCrop(224),
             # transforms.RandomHorizontalFlip(p=0.5),
             transforms.ToTensor(),
-            transforms.Normalize(mean=(0.1,), std=(0.2,)),
+            # transforms.Normalize(mean=(0.1,), std=(0.2,)),
             AddGaussianNoise(0.0, 0.01),
         ]
     )
@@ -155,7 +155,7 @@ def get_dataloader(args, K, i, modality):
             transforms.RandomCrop(224),
             # transforms.RandomHorizontalFlip(p=0.5),
             transforms.ToTensor(),
-            transforms.Normalize(mean=(0.5,), std=(0.5,)),
+            # transforms.Normalize(mean=(0.5,), std=(0.5,)),
         ]
     )
 
@@ -166,7 +166,7 @@ def get_dataloader(args, K, i, modality):
             transforms.RandomCrop(224),
             # transforms.RandomHorizontalFlip(p=0.5),
             transforms.ToTensor(),
-            transforms.Normalize(mean=(0.1,), std=(0.2,)),
+            # transforms.Normalize(mean=(0.1,), std=(0.2,)),
             # AddGaussianNoise(0.0, 0.01),
         ]
     )
